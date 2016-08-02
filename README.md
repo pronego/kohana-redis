@@ -8,5 +8,7 @@ Installation
 ------------
 
 1. git submodule add https://github.com/mutant-industries/kohana-redis.git
-2. enable module in your bootstrap.php file
-3. customize config file
+2. cd modules/redis
+3. composer update
+4. enable module in your bootstrap.php file
+5. customize config files

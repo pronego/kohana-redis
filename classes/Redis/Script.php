@@ -1,3 +1,3 @@
 <?php defined('SYSPATH') or die('No direct script access.');
 
-class Cache_Redis extends Kohana_Cache_Redis {}
+class Redis_Script extends Kohana_Redis_Script {}

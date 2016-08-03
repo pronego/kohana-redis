@@ -1,8 +1,5 @@
 <?php defined('SYSPATH') or die('No direct script access.');
 
-/**
- * @author Mutant Industries ltd. <mutant-industries@hotmail.com>
- */
 return array(
     'redis' => array(
         /*
@@ -14,11 +11,11 @@ return array(
          * If set to zero, session will expire when the browser closes, however the session
          * won't be deleted from redis. The old sessions can be flushed like this:
          *
-         * $prefix = Kohana::$config->load('session')->redis['session_key_prefix'];
+         * $namespace = Kohana::$config->load('session')->redis['session_key_namespace'];
          * $last_active_limit = time() - N;    // N is in seconds
          *
          * Redis_Client::instance()->execute("session/flush_old", array(), array(
-         *  $prefix, $last_active_limit
+         *  $namespace, $last_active_limit
          * ), 'scripts');
          *
          * This script should be used with care, because (depending on number of stored
@@ -34,9 +31,9 @@ return array(
          */
         'lazy' => TRUE,
         /*
-         * Prefix of the redis key ($session_key_prefix.$session_id)
+         * Namespace of the session keys ($session_key_namespace . $session_id)
          */
-        'session_key_prefix' => 's:',
+        'session_key_namespace' => 's:',
         /*
          * Redis connection config group
          */

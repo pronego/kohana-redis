@@ -1,23 +1,20 @@
 <?php defined('SYSPATH') or die('No direct script access.');
 
-/**
- * @author Mutant Industries ltd. <mutant-industries@hotmail.com>
- */
 return array(
     'redis' => array(
         'driver' => 'redis',
         /*
-         * Keys namespace ($key_prefix . $cache_key)
+         * Keys namespace ($key_namespace . $cache_key)
          *
          * default: empty
          */
-        'key_prefix' => 'k:',
+        'key_namespace' => 'k:',
         /*
-         * Tags namespace ($tag_prefix.$tag_name)
+         * Tags namespace ($tag_namespace.$tag_name)
          *
          * default: empty
          */
-        'tag_prefix' => 't:',
+        'tag_namespace' => 't:',
         /*
          * boolean|int - compression on/off,
          * in case when compression_lib is gzip, this will be the second parameter to gzcompress (0-9)

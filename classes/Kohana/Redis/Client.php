@@ -6,6 +6,8 @@
  */
 class Kohana_Redis_Client extends Credis_Client {
 
+    const SCRIPT_EXT = "lua";
+
     /**
      * @var Redis_Client[]
      */
@@ -102,9 +104,10 @@ class Kohana_Redis_Client extends Credis_Client {
             $path_to_script = $this->_scripts_path;
         }
 
-        if (($file = Kohana::find_file($path_to_script, $script_name, 'lua')) === FALSE)
+        if (($file = Kohana::find_file($path_to_script, $script_name, self::SCRIPT_EXT)) === FALSE)
         {
-            throw new Redis_Exception('Script ' . $path_to_script . DIRECTORY_SEPARATOR . $script_name . ' does not exist.');
+            throw new Redis_Exception('File ' . $path_to_script . DIRECTORY_SEPARATOR . $script_name . '.' . self::SCRIPT_EXT
+                . ' not found.');
         }
 
         if ( ! is_array($keys))
@@ -140,7 +143,8 @@ class Kohana_Redis_Client extends Credis_Client {
         }
         catch (CredisException $e)
         {
-            throw new Redis_Exception('Error executing '.$script_name.': '.$e->getMessage(), NULL, 0, $e);
+            throw new Redis_Exception('Error executing ' . $path_to_script . DIRECTORY_SEPARATOR . $script_name . '.' . self::SCRIPT_EXT
+                . ': ' . $e->getMessage(), null, 0, $e);
         }
     }
 

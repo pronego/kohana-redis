@@ -1,6 +1,7 @@
 <?php defined('SYSPATH') or die('No direct script access.');
 
 /**
+ * Redis cache driver with tagging support.
  *
  * @package Redis
  * @author Mutant Industries ltd. <mutant-industries@hotmail.com>
@@ -18,7 +19,7 @@ class Kohana_Cache_Redis extends Cache implements Cache_Tagging, Cache_Arithmeti
     protected $_client;
 
     /**
-     * @param array $config
+     * @param  array $config
      * @throws Cache_Exception
      */
     public function __construct(array $config)
@@ -34,8 +35,8 @@ class Kohana_Cache_Redis extends Cache implements Cache_Tagging, Cache_Arithmeti
             throw new Cache_Exception('Unable to instantiate redis client: ' . $e->getMessage(), null, 0, $e);
         }
 
-        isset($this->_config['key_prefix']) || $this->_config['key_prefix'] = '';
-        isset($this->_config['tag_prefix']) || $this->_config['tag_prefix'] = '';
+        isset($this->_config['key_namespace']) || $this->_config['key_namespace'] = '';
+        isset($this->_config['tag_namespace']) || $this->_config['tag_namespace'] = '';
         isset($this->_config['compress_data']) || $this->_config['compress_data'] = 1;
 
         if($this->_config['compress_data'])
@@ -71,6 +72,7 @@ class Kohana_Cache_Redis extends Cache implements Cache_Tagging, Cache_Arithmeti
      * @param   string $data data to set to cache
      * @param   integer $lifetime lifetime in seconds
      * @return  boolean
+     * @throws  Cache_Exception
      */
     public function set($id, $data, $lifetime = 3600)
     {
@@ -89,40 +91,37 @@ class Kohana_Cache_Redis extends Cache implements Cache_Tagging, Cache_Arithmeti
     {
         try
         {
-            $data = $this->_client->hGet($this->_config['key_prefix'] . $id, self::FIELD_DATA);
+            $data = $this->_client->hGet($this->_config['key_namespace'] . $id, self::FIELD_DATA);
 
             return $data === FALSE ? $default : $this->_decode_data($data);
         }
         catch (CredisException $e)
         {
-            throw new Cache_Exception('Failed to get redis cached entry: ' . $e->getMessage(), null, 0, $e);
+            throw new Cache_Exception('Failed to get redis cached entry "' . $id . '": ' . $e->getMessage(), null, 0, $e);
         }
     }
 
     /**
-     * Save some datas into a cache record
+     * Set a value based on an id. Optionally add tags.
      *
-     * @param  string $data             Datas to cache
-     * @param  string $id               Cache id
-     * @param  array  $tags             Array of strings, the cache record will be tagged by each string entry
-     * @param  int $lifetime            set a specific lifetime for this cache record (null => infinite lifetime)
-     * @throws Cache_Exception
-     * @return boolean True if no problem
+     * @param   string $id        id
+     * @param   mixed $data       data
+     * @param   integer $lifetime lifetime [Optional]
+     * @param   array $tags       tags [Optional]
+     * @return  bool
+     * @throws  Cache_Exception
      */
     public function set_with_tags($id, $data, $lifetime = null, array $tags = array())
     {
         $set_script_args = array();
 
         $set_script_args[] = self::FIELD_DATA;
-        /*
-         * numbers are not encoded to enable (in|de)crement using hincrby(float)
-         */
         $set_script_args[] = $this->_encode_data($data, $this->_config['compress_data']);
         $set_script_args[] = self::FIELD_MTIME;
         $set_script_args[] = time();
         $set_script_args[] = $lifetime;
         $set_script_args[] = self::FIELD_TAGS;
-        $set_script_args[] = $this->_config['tag_prefix'];
+        $set_script_args[] = $this->_config['tag_namespace'];
 
         foreach ($tags as $one_tag)
         {
@@ -131,14 +130,14 @@ class Kohana_Cache_Redis extends Cache implements Cache_Tagging, Cache_Arithmeti
 
         try
         {
-            $this->_client->execute("set", $this->_config['key_prefix'] . $id, $set_script_args,
+            $this->_client->execute("set", $this->_config['key_namespace'] . $id, $set_script_args,
                 'scripts' . DIRECTORY_SEPARATOR . 'cache');
 
             return TRUE;
         }
         catch (Redis_Exception $e)
         {
-            throw new Cache_Exception('Failed to set redis cached entry: ' . $e->getMessage(), null, 0, $e);
+            throw new Cache_Exception('Failed to set redis cached entry "' . $id . '": ' . $e->getMessage(), null, 0, $e);
         }
     }
 
@@ -146,12 +145,20 @@ class Kohana_Cache_Redis extends Cache implements Cache_Tagging, Cache_Arithmeti
      * Delete a cache entry based on id
      *
      * @param   string $id id to remove from cache
-     * @return  boolean
+     * @return  bool false when deleting non-existing record
+     * @throws  Cache_Exception
      */
     public function delete($id)
     {
-        return (bool) $this->_client->execute("delete", $this->_config['key_prefix'] . $id, array(self::FIELD_TAGS,
-            $this->_config['tag_prefix']), 'scripts' . DIRECTORY_SEPARATOR . 'cache');
+        try
+        {
+            return (bool) $this->_client->execute("delete", $this->_config['key_namespace'] . $id, array(self::FIELD_TAGS,
+                $this->_config['tag_namespace']), 'scripts' . DIRECTORY_SEPARATOR . 'cache');
+        }
+        catch (Redis_Exception $e)
+        {
+            throw new Cache_Exception('Failed to delete cached entry "' . $id . '": ' . $e->getMessage(), null, 0, $e);
+        }
     }
 
     /**
@@ -159,56 +166,72 @@ class Kohana_Cache_Redis extends Cache implements Cache_Tagging, Cache_Arithmeti
      *
      * @param   string $tag tag
      * @return  array
+     * @throws  Cache_Exception
      */
     public function find($tag)
     {
-        $result = array();
-
-        foreach ($this->_client->execute("get", array(), array($this->_sanitize_tag($tag), $this->_config['tag_prefix'],
-            self::FIELD_DATA), 'scripts' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'tag') as $value)
+        try
         {
-            $result[] = $this->_decode_data($value);
+            $result = $this->_client->execute("get", array(), array($this->_sanitize_tag($tag), $this->_config['tag_namespace'],
+                self::FIELD_DATA), 'scripts' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'tag');
+        }
+        catch (Redis_Exception $e)
+        {
+            throw new Cache_Exception('Failed to find cached entries by tag "' . $tag . '": ' . $e->getMessage(), null, 0, $e);
         }
 
-        return $result;
+        return array_map(array($this, '_decode_data'), $result);
     }
 
     /**
      * Delete cache entries based on a tag
      *
      * @param   string $tag tag
+     * @throws  Cache_Exception
      */
     public function delete_tag($tag)
     {
-        $this->_client->execute("delete", array(), array($this->_sanitize_tag($tag), $this->_config['tag_prefix'],
-            self::FIELD_TAGS), 'scripts' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'tag');
+        try
+        {
+            $this->_client->execute("delete", array(), array($this->_sanitize_tag($tag), $this->_config['tag_namespace'],
+                self::FIELD_TAGS), 'scripts' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'tag');
+        }
+        catch (Redis_Exception $e)
+        {
+            throw new Cache_Exception('Failed to delete cached entries by tag "' . $tag . '": ' . $e->getMessage(), null, 0, $e);
+        }
     }
 
     /**
      * Increments a given value by the step value supplied.
-     * Useful for shared counters and other persistent integer based
-     * tracking.
      *
-     * @param   string    $id of cache entry to increment
+     * @param   string $id      of cache entry to increment
      * @param   int|float $step value to increment by
-     * @return  int|bool       New value on success, false when key does not exist / NaN
+     * @return  bool|int New value on success, false when key does not exist / NaN
+     * @throws  Cache_Exception
      */
     public function increment($id, $step = 1)
     {
-        $result = $this->_client->execute("increment", $this->_config['key_prefix'] . $id,
-            array($step, self::FIELD_DATA), 'scripts' . DIRECTORY_SEPARATOR . 'cache');
+        try
+        {
+            $result = $this->_client->execute("increment", $this->_config['key_namespace'] . $id,
+                array($step, self::FIELD_DATA), 'scripts' . DIRECTORY_SEPARATOR . 'cache');
+        }
+        catch (Redis_Exception $e)
+        {
+            throw new Cache_Exception('Failed to increment entry "' . $id . '" by ' . $step . ': ' . $e->getMessage(), null, 0, $e);
+        }
 
         return $result !== FALSE ? $result + 0 : FALSE;
     }
 
     /**
      * Decrements a given value by the step value supplied.
-     * Useful for shared counters and other persistent integer based
-     * tracking.
      *
      * @param   string    $id of cache entry to decrement
      * @param   int|float $step value to decrement by
-     * @return  int       New value on success, false when key does not exist / NaN
+     * @return  int|bool       New value on success, false when key does not exist / NaN
+     * @throws  Cache_Exception
      */
     public function decrement($id, $step = 1)
     {
@@ -216,12 +239,10 @@ class Kohana_Cache_Redis extends Cache implements Cache_Tagging, Cache_Arithmeti
     }
 
     /**
-     * Delete all cache entries.
+     * Wipe out current redis db. Consider using separate databases for cache and sessions if this method is ever going
+     * to be used.
      *
-     * This should be used with care, while current redis db will be wiped out. Consider using dedicated databases
-     * for caches and sessions.
-     *
-     * @return boolean True if no problem
+     * @return boolean
      */
     public function delete_all()
     {
@@ -229,23 +250,26 @@ class Kohana_Cache_Redis extends Cache implements Cache_Tagging, Cache_Arithmeti
     }
 
     /**
-     * Cleanup of tag sets to contain only existing keys - use only if keys with tags might expire.
+     * Cleanup of tag sets to contain only existing keys - use only if tagged keys might expire. However expired keys
+     * are also removed on every {@link Cache_Redis#find($tag)} call, so this method might be just unnecessary overkill.
+     * Anyway this should be used with care due to the fact, that redis is running in a single thread.
      */
     public function garbage_collect()
     {
-        $this->_client->execute("garbage_collect", array(), array($this->_config['tag_prefix']),
+        $this->_client->execute("garbage_collect", array(), array($this->_config['tag_namespace']),
             'scripts' . DIRECTORY_SEPARATOR . 'cache');
     }
 
     // -----------------------------------------------------------------------------------------------------------------
     /**
-     * @param string $data
-     * @param int $level
-     * @throws Cache_Exception
-     * @return string
+     * @param   string $data
+     * @param   bool|int $level
+     * @return  string
+     * @throws  Cache_Exception
      */
     protected function _encode_data($data, $level)
     {
+        // numbers are not encoded to enable (in|de)crement using hincrbyfloat
         if (is_numeric($data))
         {
             return $data;
@@ -277,14 +301,14 @@ class Kohana_Cache_Redis extends Cache implements Cache_Tagging, Cache_Arithmeti
     }
 
     /**
-     * @param string $data
-     * @return string
+     * @param   string $data
+     * @return  string|int|float
      */
     protected function _decode_data($data)
     {
         if (is_numeric($data))
         {
-            return $data;
+            return $data + 0;
         }
 
         if (substr($data, 2, 3) === self::COMPRESS_PREFIX)
@@ -307,8 +331,8 @@ class Kohana_Cache_Redis extends Cache implements Cache_Tagging, Cache_Arithmeti
     }
 
     /**
-     * @param string $tag
-     * @return string
+     * @param   string $tag
+     * @return  string
      */
     protected function _sanitize_tag($tag)
     {

@@ -16,7 +16,7 @@ class Kohana_Session_Redis extends Session {
     /**
      * @var string
      */
-    protected $_session_key_prefix;
+    protected $_session_key_namespace;
 
     /**
      * @var String
@@ -46,7 +46,7 @@ class Kohana_Session_Redis extends Session {
     public function __construct(array $config = NULL, $id = NULL)
     {
         $this->_lazy = $config['lazy'];
-        $this->_session_key_prefix = $config['session_key_prefix'];
+        $this->_session_key_namespace = $config['session_key_namespace'];
 
         try
         {
@@ -54,7 +54,7 @@ class Kohana_Session_Redis extends Session {
         }
         catch (Redis_Exception $e)
         {
-            throw new Session_Exception('Unable to instantiate redis client: '.$e->getMessage(), NULL, 0, $e);
+            throw new Session_Exception('Unable to instantiate redis client: ' . $e->getMessage(), null, 0, $e);
         }
 
         parent::__construct($config, $id);
@@ -93,7 +93,7 @@ class Kohana_Session_Redis extends Session {
     {
         if ( ! $this->_loaded)
         {
-            $data = $this->_client->hGetAll($this->_session_key_prefix.$this->_session_id);
+            $data = $this->_client->hGetAll($this->_session_key_namespace . $this->_session_id);
 
             $this->_data = Arr::merge(Arr::map('unserialize', $data), $this->_changed);
 
@@ -108,10 +108,7 @@ class Kohana_Session_Redis extends Session {
      *
      *     $id = $session->id();
      *
-     * [!!] Not all session types have ids.
-     *
      * @return  string
-     * @since   3.0.8
      */
     public function id()
     {
@@ -137,7 +134,7 @@ class Kohana_Session_Redis extends Session {
         {
             return $default;
         }
-        if ( ! ($value = $this->_client->hGet($this->_session_key_prefix.$this->_session_id, $key)))
+        if ( ! ($value = $this->_client->hGet($this->_session_key_namespace . $this->_session_id, $key)))
         {
             $this->_data[$key] = NULL;
 
@@ -233,7 +230,7 @@ class Kohana_Session_Redis extends Session {
     {
         if ($id || $id = Cookie::get($this->_name))
         {
-            if ($this->_client->exists($this->_session_key_prefix.$id))
+            if ($this->_client->exists($this->_session_key_namespace . $id))
             {
                 // Set the current session id
                 $this->_session_id = $id;
@@ -261,7 +258,7 @@ class Kohana_Session_Redis extends Session {
             // Create a new session id
             $id = substr_replace(substr_replace(str_replace('.', '', uniqid(NULL, TRUE)), ':', 4, 0), ':', 7, 0);
         }
-        while ($this->_client->exists($this->_session_key_prefix.$id));
+        while ($this->_client->exists($this->_session_key_namespace . $id));
 
         return $this->_session_id = $id;
     }
@@ -281,17 +278,17 @@ class Kohana_Session_Redis extends Session {
         {
             if ($value === NULL)
             {
-                $this->_client->hDel($this->_session_key_prefix.$this->_session_id, $key);
+                $this->_client->hDel($this->_session_key_namespace . $this->_session_id, $key);
             }
             else
             {
-                $this->_client->hSet($this->_session_key_prefix.$this->_session_id, $key, serialize($value));
+                $this->_client->hSet($this->_session_key_namespace . $this->_session_id, $key, serialize($value));
             }
         }
 
         if ($this->_lifetime > 0)
         {
-            $this->_client->expire($this->_session_key_prefix.$this->_session_id, $this->_lifetime);
+            $this->_client->expire($this->_session_key_namespace . $this->_session_id, $this->_lifetime);
         }
 
         $this->_client->exec();
@@ -309,7 +306,7 @@ class Kohana_Session_Redis extends Session {
      */
     protected function _destroy()
     {
-        $this->_client->del($this->_session_key_prefix.$this->_session_id);
+        $this->_client->del($this->_session_key_namespace . $this->_session_id);
 
         Cookie::delete($this->_name);
 

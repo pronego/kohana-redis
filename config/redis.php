@@ -1,9 +1,5 @@
 <?php defined('SYSPATH') or die('No direct script access.');
 
-/**
- *
- * @author Mutant Industries ltd. <mutant-industries@hotmail.com>
- */
 return array(
     /*
      * Hostname of full connection string, e.g.
@@ -20,7 +16,7 @@ return array(
      */
 //    'password' => '',
     /*
-     * Default databaase to be selected after connection
+     * Default database to be selected after connection
      */
 //    'database' => 0,
     /*

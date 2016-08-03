@@ -3,6 +3,7 @@ Kohana Redis Module
 
 - redis cache driver with tagging support
 - redis session support
+- credis client wrapper with integrated lua script execution support 
 
 Installation
 ------------

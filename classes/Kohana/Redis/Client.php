@@ -104,12 +104,6 @@ class Kohana_Redis_Client extends Credis_Client {
             $path_to_script = $this->_scripts_path;
         }
 
-        if (($file = Kohana::find_file($path_to_script, $script_name, self::SCRIPT_EXT)) === FALSE)
-        {
-            throw new Redis_Exception('File ' . $path_to_script . DIRECTORY_SEPARATOR . $script_name . '.' . self::SCRIPT_EXT
-                . ' not found.');
-        }
-
         if ( ! is_array($keys))
         {
             $keys = array($keys);
@@ -119,32 +113,21 @@ class Kohana_Redis_Client extends Credis_Client {
             $argv = array($argv);
         }
 
-        $script_content = NULL;
-
-        if (Kohana::$caching === FALSE || ($sha1 = Kohana::cache("file-content-sha1-".$file)) === NULL)
-        {
-            $sha1 = sha1($script_content = file_get_contents($file));
-            Kohana::cache("file-content-sha1-".$file, $sha1);
-        }
+        $script = new Redis_Script($path_to_script, $script_name, $this);
 
         try
         {
-            if (($result = $this->evalSha($sha1, $keys, $argv)) !== NULL)
+            if (($result = $this->evalSha($script->get_sha1(), $keys, $argv)) !== NULL)
             {
                 return $result;
             }
 
-            if ($script_content === NULL)
-            {
-                $script_content = file_get_contents($file);
-            }
-
-            return $this->eval($script_content, $keys, $argv);
+            return $this->eval($script->get_source(), $keys, $argv);
         }
         catch (CredisException $e)
         {
-            throw new Redis_Exception('Error executing ' . $path_to_script . DIRECTORY_SEPARATOR . $script_name . '.' . self::SCRIPT_EXT
-                . ': ' . $e->getMessage(), null, 0, $e);
+            throw new Redis_Exception('Error executing ' . $path_to_script . DIRECTORY_SEPARATOR . $script_name . '.'
+                . Redis_Script::SCRIPT_EXT . ': ' . $e->getMessage(), null, 0, $e);
         }
     }
 

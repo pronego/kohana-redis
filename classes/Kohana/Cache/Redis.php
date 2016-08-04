@@ -242,22 +242,40 @@ class Kohana_Cache_Redis extends Cache implements Cache_Tagging, Cache_Arithmeti
      * Wipe out current redis db. Consider using separate databases for cache and sessions if this method is ever going
      * to be used.
      *
-     * @return boolean
+     * @return bool
+     * @throws Cache_Exception
      */
     public function delete_all()
     {
-        return $this->_client->flushDb();
+        try
+        {
+            return $this->_client->flushDb();
+        }
+        catch (CredisException $e)
+        {
+            throw new Cache_Exception('Failed to execute flushdb: ' . $e->getMessage(), null, 0, $e);
+        }
     }
 
     /**
      * Cleanup of tag sets to contain only existing keys - use only if tagged keys might expire. However expired keys
      * are also removed on every {@link Cache_Redis#find($tag)} call, so this method might be just unnecessary overkill.
      * Anyway this should be used with care due to the fact, that redis is running in a single thread.
+     *
+     * @throws  Cache_Exception
      */
     public function garbage_collect()
     {
-        $this->_client->execute(new Redis_Script_Composite('scripts' . DIRECTORY_SEPARATOR . 'cache', 'garbage_collect'),
-            array(), array($this->_config['tag_namespace']));
+        try
+        {
+            $this->_client->execute(new Redis_Script_Composite('scripts' . DIRECTORY_SEPARATOR . 'cache', 'garbage_collect'),
+                array(), array($this->_config['tag_namespace']));
+        }
+        catch (Redis_Exception $e)
+        {
+            throw new Cache_Exception('Failed to run garbage collect script: ' . $e->getMessage(), null, 0, $e);
+        }
+
     }
 
     // -----------------------------------------------------------------------------------------------------------------

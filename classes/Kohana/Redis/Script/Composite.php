@@ -43,7 +43,8 @@ class Kohana_Redis_Script_Composite extends Redis_Script {
     /**
      * @return string
      */
-    public function get_source() {
+    public function get_source()
+    {
         if ($this->_source_cached !== NULL)
         {
             return $this->_source_cached;
@@ -70,7 +71,7 @@ class Kohana_Redis_Script_Composite extends Redis_Script {
      */
     protected function _require_replacement($matches)
     {
-        $relative = preg_split('|' . DIRECTORY_SEPARATOR . '(?=[^' . DIRECTORY_SEPARATOR . ']+$)|', $matches['path']);
+        $relative = preg_split('|/(?=[^/]+$)|', $matches['path']);
 
         if (count($relative) == 1)
         {
@@ -79,7 +80,8 @@ class Kohana_Redis_Script_Composite extends Redis_Script {
         }
         else
         {
-            $path = preg_replace('|' . DIRECTORY_SEPARATOR . '$|', '', $this->_path) . DIRECTORY_SEPARATOR . $relative[0];
+            $path = preg_replace('|' . DIRECTORY_SEPARATOR . '$|', '', $this->_path) . DIRECTORY_SEPARATOR .
+                (Kohana::$is_windows ? preg_replace('|/|', DIRECTORY_SEPARATOR, $relative[0]) : $relative[0]);
             $script_name = $relative[1];
         }
 

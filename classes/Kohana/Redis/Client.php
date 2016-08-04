@@ -6,8 +6,6 @@
  */
 class Kohana_Redis_Client extends Credis_Client {
 
-    const SCRIPT_EXT = "lua";
-
     /**
      * @var Redis_Client[]
      */
@@ -79,7 +77,7 @@ class Kohana_Redis_Client extends Credis_Client {
         }
         catch (CredisException $e)
         {
-            throw new Redis_Exception('The redis database could not be selected: '.$e->getMessage(), NULL, 0, $e);
+            throw new Redis_Exception('The redis database could not be selected: ' . $e->getMessage(), null, 0, $e);
         }
 
         return $instance;

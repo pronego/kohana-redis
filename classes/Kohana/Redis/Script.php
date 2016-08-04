@@ -39,7 +39,7 @@ class Kohana_Redis_Script {
     /**
      * @var bool
      */
-    protected $_use_caching;
+    protected $_cache_sha1;
 
     /**
      * @param $path
@@ -51,7 +51,7 @@ class Kohana_Redis_Script {
         $this->_path = $path;
         $this->_script_name = $script_name;
         $this->_client = $client;
-        $this->_use_caching = Kohana::$caching === TRUE;
+        $this->_cache_sha1 = Kohana::$caching === TRUE;
     }
 
     /**
@@ -75,7 +75,7 @@ class Kohana_Redis_Script {
      */
     public function get_sha1()
     {
-        return $this->_use_caching ? $this->_get_sha1_cached() : sha1($this->get_source());
+        return $this->_cache_sha1 ? $this->_get_sha1_cached() : sha1($this->get_source());
     }
 
     /**
@@ -110,7 +110,7 @@ class Kohana_Redis_Script {
 
         if ($this->_client === NULL)
         {
-            throw new Redis_Exception('Script hash caching not possible, because redis client not set.');
+            throw new Redis_Exception('Script hash caching not possible, because redis client is not set.');
         }
 
         try

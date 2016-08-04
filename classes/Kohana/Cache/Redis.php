@@ -91,7 +91,7 @@ class Kohana_Cache_Redis extends Cache implements Cache_Tagging, Cache_Arithmeti
     {
         try
         {
-            $data = $this->_client->hGet($this->_config['key_namespace'] . $id, self::FIELD_DATA);
+            $data = $this->_client->hGet($this->_config['key_namespace'] . $id, Cache_Redis::FIELD_DATA);
 
             return $data === FALSE ? $default : $this->_decode_data($data);
         }
@@ -115,12 +115,12 @@ class Kohana_Cache_Redis extends Cache implements Cache_Tagging, Cache_Arithmeti
     {
         $set_script_args = array();
 
-        $set_script_args[] = self::FIELD_DATA;
+        $set_script_args[] = Cache_Redis::FIELD_DATA;
         $set_script_args[] = $this->_encode_data($data, $this->_config['compress_data']);
-        $set_script_args[] = self::FIELD_MTIME;
+        $set_script_args[] = Cache_Redis::FIELD_MTIME;
         $set_script_args[] = time();
         $set_script_args[] = $lifetime;
-        $set_script_args[] = self::FIELD_TAGS;
+        $set_script_args[] = Cache_Redis::FIELD_TAGS;
         $set_script_args[] = $this->_config['tag_namespace'];
 
         foreach ($tags as $one_tag)
@@ -130,8 +130,8 @@ class Kohana_Cache_Redis extends Cache implements Cache_Tagging, Cache_Arithmeti
 
         try
         {
-            $this->_client->execute("set", $this->_config['key_namespace'] . $id, $set_script_args,
-                'scripts' . DIRECTORY_SEPARATOR . 'cache');
+            $this->_client->execute(new Redis_Script_Composite('scripts' . DIRECTORY_SEPARATOR . 'cache', 'set'),
+                $this->_config['key_namespace'] . $id, $set_script_args);
 
             return TRUE;
         }
@@ -152,8 +152,8 @@ class Kohana_Cache_Redis extends Cache implements Cache_Tagging, Cache_Arithmeti
     {
         try
         {
-            return (bool) $this->_client->execute("delete", $this->_config['key_namespace'] . $id, array(self::FIELD_TAGS,
-                $this->_config['tag_namespace']), 'scripts' . DIRECTORY_SEPARATOR . 'cache');
+            return (bool) $this->_client->execute(new Redis_Script_Composite('scripts' . DIRECTORY_SEPARATOR . 'cache', 'delete'),
+                $this->_config['key_namespace'] . $id, array(Cache_Redis::FIELD_TAGS, $this->_config['tag_namespace']));
         }
         catch (Redis_Exception $e)
         {
@@ -172,8 +172,8 @@ class Kohana_Cache_Redis extends Cache implements Cache_Tagging, Cache_Arithmeti
     {
         try
         {
-            $result = $this->_client->execute("get", array(), array($this->_sanitize_tag($tag), $this->_config['tag_namespace'],
-                self::FIELD_DATA), 'scripts' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'tag');
+            $result = $this->_client->execute(new Redis_Script_Composite('scripts' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'tag', 'get'),
+                array(), array($this->_sanitize_tag($tag), $this->_config['tag_namespace'], Cache_Redis::FIELD_DATA));
         }
         catch (Redis_Exception $e)
         {
@@ -193,8 +193,8 @@ class Kohana_Cache_Redis extends Cache implements Cache_Tagging, Cache_Arithmeti
     {
         try
         {
-            $this->_client->execute("delete", array(), array($this->_sanitize_tag($tag), $this->_config['tag_namespace'],
-                self::FIELD_TAGS), 'scripts' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'tag');
+            $this->_client->execute(new Redis_Script_Composite('scripts' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'tag', 'delete'),
+                array(), array($this->_sanitize_tag($tag), $this->_config['tag_namespace'], Cache_Redis::FIELD_TAGS));
         }
         catch (Redis_Exception $e)
         {
@@ -214,8 +214,8 @@ class Kohana_Cache_Redis extends Cache implements Cache_Tagging, Cache_Arithmeti
     {
         try
         {
-            $result = $this->_client->execute("increment", $this->_config['key_namespace'] . $id,
-                array($step, self::FIELD_DATA), 'scripts' . DIRECTORY_SEPARATOR . 'cache');
+            $result = $this->_client->execute(new Redis_Script_Composite('scripts' . DIRECTORY_SEPARATOR . 'cache', 'increment'),
+                $this->_config['key_namespace'] . $id, array($step, Cache_Redis::FIELD_DATA));
         }
         catch (Redis_Exception $e)
         {
@@ -256,8 +256,8 @@ class Kohana_Cache_Redis extends Cache implements Cache_Tagging, Cache_Arithmeti
      */
     public function garbage_collect()
     {
-        $this->_client->execute("garbage_collect", array(), array($this->_config['tag_namespace']),
-            'scripts' . DIRECTORY_SEPARATOR . 'cache');
+        $this->_client->execute(new Redis_Script_Composite('scripts' . DIRECTORY_SEPARATOR . 'cache', 'garbage_collect'),
+            array(), array($this->_config['tag_namespace']));
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -294,7 +294,7 @@ class Kohana_Cache_Redis extends Cache implements Cache_Tagging, Cache_Arithmeti
                 throw new Cache_Exception("Could not compress cache data.");
             }
 
-            return substr($this->_config['compression_lib'], 0, 2) . self::COMPRESS_PREFIX . $data;
+            return substr($this->_config['compression_lib'], 0, 2) . Cache_Redis::COMPRESS_PREFIX . $data;
         }
 
         return $data;
@@ -311,7 +311,7 @@ class Kohana_Cache_Redis extends Cache implements Cache_Tagging, Cache_Arithmeti
             return $data + 0;
         }
 
-        if (substr($data, 2, 3) === self::COMPRESS_PREFIX)
+        if (substr($data, 2, 3) === Cache_Redis::COMPRESS_PREFIX)
         {
             switch (substr($data, 0, 2))
             {

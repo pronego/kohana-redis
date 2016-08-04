@@ -1,3 +1,7 @@
+require_once "_common"
+require_once "../functions/is_empty"
+require_once "../functions/string/split"
+
 -- Set cache record {@field_data = @data, @field_mtime = @mtime} to a @key, set it's expiration time (@ttl) if not empty.
 -- If tags are specified, they are stored to @field_tags (without namespace, separated by ","), the @key is stored to
 -- sets @tag_namespace .. @tag, tags (without namespace) are also stored to @tag_namespace .. "__TAG_INDEX__".
@@ -13,20 +17,6 @@
 -- - ARGV[6] field_tags
 -- - ARGV[7] tag_namespace
 -- - ... followed by any number of tags
--- -----------------------------------------------------------------------------
-
-local function is_empty(s)
-    return s == nil or s == ""
-end
-
-function string:split(sep)
-    local sep, fields = sep or ":", {}
-    local pattern = string.format("([^%s]+)", sep)
-    self:gsub(pattern, function(c) fields[#fields + 1] = c end)
-
-    return fields
-end
-
 -- -----------------------------------------------------------------------------
 
 local key = KEYS[1]
@@ -61,9 +51,6 @@ end
 assert(not is_empty(field_tags), "field_tags cannot be empty")
 
 -- -----------------------------------------------------------------------------
-
-local tags_delimiter = ","
-local tag_index_key = "__TAG_INDEX__"
 
 local old_tags_raw = redis.call("hget", key, field_tags)
 local old_tags = {}

@@ -1,3 +1,5 @@
+require_once "_common"
+
 -- Run the cleanup of tag sets for a given @tag_namespace. All keys, that no longer exist, shall be removed from tag sets.
 -- Tags, that will no longer exist after this operation, shall be also removed from @tag_namespace .. "__TAG_INDEX__".
 --
@@ -10,8 +12,6 @@
 local tag_namespace = ARGV[1] or ''
 
 -- -----------------------------------------------------------------------------
-
-local tag_index_key = "__TAG_INDEX__"
 
 for _, tag in pairs(redis.call("smembers", tag_namespace .. tag_index_key)) do
     local size = redis.call("scard", tag_namespace .. tag)

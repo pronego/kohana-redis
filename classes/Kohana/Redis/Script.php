@@ -13,12 +13,12 @@ class Kohana_Redis_Script {
      * @var array
      */
     protected static $_sha1_local_cache = array(
-        "scripts/cache/set" => "c8a48bf95e7fa1bd68821f08158ff7e2117c8cf2",
-        "scripts/cache/increment" => "200d89408672673c23eb9f2ed62f00a3d8dfbb24",
-        "scripts/cache/delete" => "9b9c1fbf01748ce312a7452a03c82d776a804c40",
-        "scripts/cache/garbage_collect" => "65d170f90fefb210666e99ebe6ef72afe194344e",
-        "scripts/cache/tag/get" => "5e5a8519a377604595b056a0133390896dfaffcf",
-        "scripts/cache/tag/delete" => "1e948c30397d7ede937d0d9206b28aecf8d0ca88"
+        "scripts/cache/set" => "7e0932db420e61eaaad6af2bc364dd1e1897aebc",
+        "scripts/cache/increment" => "5439c31b8d154fb2fc039b4755449c892675612d",
+        "scripts/cache/delete" => "2fc15db10e9a5e9bdf5aee52c8e54394f31691cd",
+        "scripts/cache/garbage_collect" => "6ee79d37a40f078d308c03079d34f6e8fc7488fa",
+        "scripts/cache/tag/get" => "7c93148e165a722fcd5a1c0edadf095b80e3d3b1",
+        "scripts/cache/tag/delete" => "fe4de4da431483ea7f4771d69f59574bdf87ff46"
     );
 
     /**
@@ -42,13 +42,11 @@ class Kohana_Redis_Script {
     protected $_use_caching;
 
     /**
-     * Kohana_Redis_Script constructor.
-     *
      * @param $path
      * @param $script_name
-     * @param Credis_Client $client
+     * @param Credis_Client $client If not set, then the sha1 is expected to be hard-coded to $_sha1_local_cache
      */
-    public function __construct($path, $script_name, Credis_Client $client)
+    public function __construct($path, $script_name, Credis_Client $client = NULL)
     {
         $this->_path = $path;
         $this->_script_name = $script_name;
@@ -81,6 +79,14 @@ class Kohana_Redis_Script {
     }
 
     /**
+     * @return string
+     */
+    public function __toString()
+    {
+        return '[' . get_class($this) . '] ' . $this->_path . DIRECTORY_SEPARATOR . $this->_script_name;
+    }
+
+    /**
      * Getting sha1 of a lua script needs to be super-fast, since it precedes every script evaluation in redis,
      * therefore redis itself if preferred for caching those sha1 to some file-based caches. However it still means,
      * that a single "hget" command once precedes each script evaluation.
@@ -100,6 +106,11 @@ class Kohana_Redis_Script {
         if (isset(Redis_Script::$_sha1_local_cache[$cache_key]))
         {
             return Redis_Script::$_sha1_local_cache[$cache_key];
+        }
+
+        if ($this->_client === NULL)
+        {
+            throw new Redis_Exception('Script hash caching not possible, because redis client not set.');
         }
 
         try

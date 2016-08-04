@@ -1,3 +1,7 @@
+require_once "_common"
+require_once "../functions/is_empty"
+require_once "../functions/string/split"
+
 -- Delete @key, delete if from all tags in @tag_namespace it belong to.
 -- Tags, that will no longer exist after this operation, shall be also removed from @tag_namespace .. "__TAG_INDEX__".
 --
@@ -9,20 +13,6 @@
 -- return int 0, if @key doesn't exist, 1 otherwise
 -- -----------------------------------------------------------------------------
 
-local function is_empty(s)
-    return s == nil or s == ""
-end
-
-function string:split(sep)
-    local sep, fields = sep or ":", {}
-    local pattern = string.format("([^%s]+)", sep)
-    self:gsub(pattern, function(c) fields[#fields+1] = c end)
-
-    return fields
-end
-
--- -----------------------------------------------------------------------------
-
 local key = KEYS[1]
 local field_tags = ARGV[1]
 local tag_namespace = ARGV[2] or ''
@@ -31,9 +21,6 @@ assert(not is_empty(key), "key cannot be empty")
 assert(not is_empty(field_tags), "field_tags cannot be empty")
 
 -- -----------------------------------------------------------------------------
-
-local tags_delimiter = ","
-local tag_index_key = "__TAG_INDEX__"
 
 local tags = redis.call("hget", key, field_tags)
 

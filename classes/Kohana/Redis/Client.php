@@ -88,16 +88,15 @@ class Kohana_Redis_Client extends Credis_Client {
     /**
      * Execute lua script
      *
-     * @param string $script_name
-     * @param mixed $keys
-     * @param mixed $argv
-     * @param string $path_to_script
-     * @return mixed
+     * @param string|Redis_Script   $script
+     * @param mixed                 $keys
+     * @param mixed                 $argv
+     * @param string                $path_to_script
      *
-     * @throws Kohana_Exception
+     * @return mixed
      * @throws Redis_Exception on script execution error
      */
-    public function execute($script_name, $keys = array(), $argv = array(), $path_to_script = NULL)
+    public function execute($script, $keys = array(), $argv = array(), $path_to_script = NULL)
     {
         if ($path_to_script === NULL)
         {
@@ -113,21 +112,21 @@ class Kohana_Redis_Client extends Credis_Client {
             $argv = array($argv);
         }
 
-        $script = new Redis_Script($path_to_script, $script_name, $this);
+        $redis_script = $script instanceof Redis_Script ? $script : $this->_get_script($path_to_script, $script);
 
         try
         {
-            if (($result = $this->evalSha($script->get_sha1(), $keys, $argv)) !== NULL)
+            if (($result = $this->evalSha($redis_script->get_sha1(), $keys, $argv)) !== NULL)
             {
                 return $result;
             }
 
-            return $this->eval($script->get_source(), $keys, $argv);
+            return $this->eval($redis_script->get_source(), $keys, $argv);
         }
         catch (CredisException $e)
         {
-            throw new Redis_Exception('Error executing ' . $path_to_script . DIRECTORY_SEPARATOR . $script_name . '.'
-                . Redis_Script::SCRIPT_EXT . ': ' . $e->getMessage(), null, 0, $e);
+            throw new Redis_Exception('Error executing ' . $script . '.' . Redis_Script::SCRIPT_EXT . ': '
+                . $e->getMessage(), null, 0, $e);
         }
     }
 
@@ -139,7 +138,7 @@ class Kohana_Redis_Client extends Credis_Client {
     /**
      * Scripts default path getter / setter
      *
-     * @param null $path
+     * @param string $path
      *
      * @return string
      */
@@ -151,6 +150,23 @@ class Kohana_Redis_Client extends Credis_Client {
         }
 
         $this->_scripts_path = $path;
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    /**
+     * Get script source / sha1 provider. There's no internal usage of this method, it's meant to be overridden, if the
+     * default provider is insufficient.
+     *
+     * Please note, that this method is called only in case, when the first parameter of Redis_Client::execute
+     * is string (custom implementation of Redis_Script can be passed instead).
+     *
+     * @param   $path_to_script
+     * @param   $script_name
+     * @return  Redis_Script
+     */
+    protected function _get_script($path_to_script, $script_name)
+    {
+        return new Redis_Script_Composite($path_to_script, $script_name, $this);
     }
 
 }

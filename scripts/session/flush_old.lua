@@ -1,3 +1,5 @@
+require_once "../functions/is_empty"
+
 -- Flushes session records (keys starting with @namespace) that have last_active < @last_active_limit.
 -- - please note, that the script uses 'KEYS' command, which might take long time to execute (if there are milions of
 --      keys in used database), which would block all other redis operations.
@@ -5,12 +7,6 @@
 -- parameters:
 -- - ARGV[1] namespace - session keys namespace
 -- - ARGV[2] last_active_limit - unix timestamp
--- -----------------------------------------------------------------------------
-
-local function is_empty(s)
-    return s == nil or s == ""
-end
-
 -- -----------------------------------------------------------------------------
 
 local namespace = ARGV[1]

@@ -1,3 +1,5 @@
+require_once "../functions/is_empty"
+
 -- Increment existing @field_data by @step in hashmap given by @key.
 --
 -- parameters:
@@ -6,12 +8,6 @@
 -- - ARGV[2] field_data
 
 -- return string|nil new value on success, nil if key doesn't exist / is not a hashmap / @field_data doesn't contain number
--- -----------------------------------------------------------------------------
-
-local function is_empty(s)
-    return s == nil or s == ""
-end
-
 -- -----------------------------------------------------------------------------
 
 local key = KEYS[1]

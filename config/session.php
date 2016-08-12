@@ -14,9 +14,8 @@ return array(
          * $namespace = Kohana::$config->load('session')->redis['session_key_namespace'];
          * $last_active_limit = time() - N;    // N is in seconds
          *
-         * Redis_Client::instance()->execute("flush_old", array(), array(
-         *  $namespace, $last_active_limit
-         * ), 'scripts/session');
+         *  Redis_Client::instance()->execute(new Redis_Script_Composite('scripts' . DIRECTORY_SEPARATOR . 'session', 'flush_old'),
+         *      array(), array($namespace, $last_active_limit));
          *
          * This script should be used with care, because (depending on number of stored
          * sessions) it might block redis for some time.

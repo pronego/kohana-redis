@@ -2,7 +2,7 @@ require_once "_common"
 require_once "../functions/is_empty"
 require_once "../functions/string/split"
 
--- Delete @key, delete if from all tags in @tag_namespace it belong to.
+-- Delete @key, delete if from all tags in @tag_namespace it belongs to.
 -- Tags, that will no longer exist after this operation, shall be also removed from @tag_namespace .. "__TAG_INDEX__".
 --
 -- parameters:

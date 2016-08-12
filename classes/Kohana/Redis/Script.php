@@ -15,10 +15,11 @@ class Kohana_Redis_Script {
     protected static $_sha1_local_cache = array(
         "scripts/cache/set" => "7e0932db420e61eaaad6af2bc364dd1e1897aebc",
         "scripts/cache/increment" => "5439c31b8d154fb2fc039b4755449c892675612d",
-        "scripts/cache/delete" => "2fc15db10e9a5e9bdf5aee52c8e54394f31691cd",
+        "scripts/cache/delete" => "cdceec6fa1dc7847b7d0dd928783dee3311df8f4",
         "scripts/cache/garbage_collect" => "6ee79d37a40f078d308c03079d34f6e8fc7488fa",
         "scripts/cache/tag/get" => "7c93148e165a722fcd5a1c0edadf095b80e3d3b1",
-        "scripts/cache/tag/delete" => "fe4de4da431483ea7f4771d69f59574bdf87ff46"
+        "scripts/cache/tag/delete" => "fe4de4da431483ea7f4771d69f59574bdf87ff46",
+        "scripts/session/flush_old" => "51c17b154fa4e12610dd2e021e0b6615ebdbf625"
     );
 
     /**

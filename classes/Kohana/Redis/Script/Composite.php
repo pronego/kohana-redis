@@ -1,7 +1,22 @@
 <?php defined('SYSPATH') or die('No direct script access.');
 
 /**
- * Require / require_once support in lua scripts
+ * Compose script containing 'require[_once]' keyword followed by string containing relative path to another script.
+ *
+ * Use scripts/lua-compose.pl to achieve the same thing via command line and print the result to STDOUT. To evaluate
+ * the composite script use the redis-eval-composite.sh. To run redis lua debugger (redis-cli --ldb) the redis-debug.sh
+ * helper script can be used. The eval / debug scripts expect the lua-compose.pl to be present in PATH as 'lua-compose'
+ * command (without extension). This is the optional installation procedure:
+ *
+ * cd ${module_root}/scripts
+ * sudo cp lua-compose.pl /usr/local/bin/lua-compose
+ * sudo cp redis-debug.sh /usr/bin/redis-debug
+ * sudo cp redis-eval-composite.sh /usr/bin/redis-eval-composite
+ *
+ * All these scripts expect the first argument to be existing lua script. The redis-eval-composite.sh and redis-debug.sh
+ * will just proxy all subsequent arguments to redis-cli. Please note that regarding the debugger the script doesn't
+ * keep track of any changed files and doesn't do any updates to the generated script, so the 'restart' command in
+ * redis lua debugger will never update the script source.
  *
  * @package Redis
  * @author Mutant Industries ltd. <mutant-industries@hotmail.com>
